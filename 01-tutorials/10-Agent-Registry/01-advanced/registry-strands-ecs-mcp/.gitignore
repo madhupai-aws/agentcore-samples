@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# macOS
+.DS_Store
+
+# Claude Code local config
+.claude/
+.mcp.json
+
+# Diagram / PPT generation scripts (not part of the app)
+build_arch_diagram.py
+build_pptx.py
+build_seq_panels.py
+build_sequence_diagram.py
+build_sequence_diagram_hires.py
+
+# Generated diagram images at repo root
+arch_diagram.png
+sequence_diagram.png
+sequence_diagram_hires.png
+seq_panel1.png
+seq_panel2.png
+seq_panel3.png
+
+# Old prototype / scratch files at repo root
+/demo.py
+/mcp_server.py
+/python_exec_tool.py
+/skill_loader.py
+/requirements.txt
+
+# Old prototype frontend (superseded by deploy/chat/static/index.html)
+frontend/
+
+# Exploratory notebooks
+*.ipynb
+
+# Older draft docs (keep DEMO_SCRIPT.md and TECHNICAL_DEEP_DIVE.md)
+docs/
+
+# Secrets / env files
+.env
+.env.*
+*.pem
+*.key
+
+# Terraform / CDK state (if added later)
+*.tfstate
+*.tfstate.*
+cdk.out/
