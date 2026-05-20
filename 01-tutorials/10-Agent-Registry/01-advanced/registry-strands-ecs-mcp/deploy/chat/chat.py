@@ -21,7 +21,7 @@ from typing import Optional
 
 import httpx
 import uvicorn
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -35,11 +35,13 @@ logging.basicConfig(
 )
 log = logging.getLogger("chat")
 
-AGENT_URL        = os.environ.get("AGENT_URL", "http://localhost:8081")
+AGENT_URL = os.environ.get("AGENT_URL", "http://localhost:8081")
 _raw_jwks = os.environ.get("COGNITO_JWKS_URL", "")
-COGNITO_JWKS_URL = _raw_jwks if _raw_jwks.startswith("https://") else ""  # skip JWT if not a real URL
+COGNITO_JWKS_URL = (
+    _raw_jwks if _raw_jwks.startswith("https://") else ""
+)  # skip JWT if not a real URL
 
-app          = FastAPI(title="Financial Analyst Chat")
+app = FastAPI(title="Financial Analyst Chat")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -57,6 +59,7 @@ def _get_jwks() -> dict:
     global _jwks_cache
     if _jwks_cache is None and COGNITO_JWKS_URL:
         import urllib.request
+
         with urllib.request.urlopen(COGNITO_JWKS_URL, timeout=5) as r:
             _jwks_cache = json.loads(r.read())
     return _jwks_cache or {}
@@ -64,12 +67,12 @@ def _get_jwks() -> dict:
 
 def _verify_token(token: str) -> dict:
     if not COGNITO_JWKS_URL:
-        return {}   # dev mode
+        return {}  # dev mode
     try:
-        jwks   = _get_jwks()
+        jwks = _get_jwks()
         header = jwt.get_unverified_header(token)
-        kid    = header.get("kid")
-        key    = next((k for k in jwks.get("keys", []) if k["kid"] == kid), None)
+        kid = header.get("kid")
+        key = next((k for k in jwks.get("keys", []) if k["kid"] == kid), None)
         if not key:
             raise HTTPException(status_code=401, detail="Unknown signing key")
         public_key = jwk.construct(key)
@@ -92,9 +95,10 @@ def require_auth(
 
 # ── Models ─────────────────────────────────────────────────────────────────────
 
+
 class ChatRequest(BaseModel):
     message: str
-    history: list = []   # [{role: "user"|"assistant", content: "..."}]
+    history: list = []  # [{role: "user"|"assistant", content: "..."}]
 
 
 class ChatResponse(BaseModel):
@@ -103,6 +107,7 @@ class ChatResponse(BaseModel):
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
+
 
 @app.get("/health")
 def health():
@@ -173,12 +178,14 @@ async def chat_stream(
                             yield chunk
         except httpx.HTTPStatusError as exc:
             yield f"event: error\ndata: {json.dumps({'text': f'Agent error {exc.response.status_code}'})}\n\n".encode()
-        except httpx.RequestError as exc:
+        except httpx.RequestError:
             yield f"event: error\ndata: {json.dumps({'text': 'Agent unreachable'})}\n\n".encode()
 
-    return StreamingResponse(generate(), media_type="text/event-stream",
-                             headers={"Cache-Control": "no-cache",
-                                      "X-Accel-Buffering": "no"})
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 # ── Static frontend (must be mounted last, after all API routes) ───────────────

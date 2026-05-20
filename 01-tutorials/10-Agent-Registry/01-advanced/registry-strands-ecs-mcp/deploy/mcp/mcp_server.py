@@ -13,7 +13,6 @@ Tools:
 """
 
 import os
-import boto3
 import uvicorn
 from fastmcp import FastMCP
 from starlette.applications import Starlette
@@ -31,28 +30,28 @@ SKILLS_BUCKET = os.environ.get("SKILLS_BUCKET", "")
 # Simulated quarterly P&L data
 FINANCIAL_DATA = {
     "Q3 2025": {
-        "revenue":            4_200_000,
-        "cogs":               1_890_000,
+        "revenue": 4_200_000,
+        "cogs": 1_890_000,
         "operating_expenses": 1_050_000,
-        "ebitda":             1_260_000,
+        "ebitda": 1_260_000,
     },
     "Q2 2025": {
-        "revenue":            3_800_000,
-        "cogs":               1_710_000,
-        "operating_expenses":   980_000,
-        "ebitda":             1_110_000,
+        "revenue": 3_800_000,
+        "cogs": 1_710_000,
+        "operating_expenses": 980_000,
+        "ebitda": 1_110_000,
     },
     "Q1 2025": {
-        "revenue":            3_500_000,
-        "cogs":               1_575_000,
-        "operating_expenses":   910_000,
-        "ebitda":             1_015_000,
+        "revenue": 3_500_000,
+        "cogs": 1_575_000,
+        "operating_expenses": 910_000,
+        "ebitda": 1_015_000,
     },
     "Q4 2024": {
-        "revenue":            4_000_000,
-        "cogs":               1_800_000,
+        "revenue": 4_000_000,
+        "cogs": 1_800_000,
         "operating_expenses": 1_000_000,
-        "ebitda":             1_200_000,
+        "ebitda": 1_200_000,
     },
 }
 
@@ -69,7 +68,9 @@ def get_financial_data(period: str) -> dict:
     """
     data = FINANCIAL_DATA.get(period)
     if data is None:
-        return {"error": f"No data for '{period}'. Available: {list(FINANCIAL_DATA.keys())}"}
+        return {
+            "error": f"No data for '{period}'. Available: {list(FINANCIAL_DATA.keys())}"
+        }
     return {"period": period, **data}
 
 
@@ -106,15 +107,16 @@ def get_kpi_benchmarks() -> dict:
             },
         },
         "status_thresholds": {
-            "GREEN":  "At or above general_benchmark",
+            "GREEN": "At or above general_benchmark",
             "YELLOW": "Within 5 percentage points below general_benchmark",
-            "RED":    "More than 5 percentage points below general_benchmark",
+            "RED": "More than 5 percentage points below general_benchmark",
         },
     }
 
 
 async def health(request: Request):
     return JSONResponse({"status": "healthy"})
+
 
 # Wrap MCP ASGI app with a /health route for ALB health checks.
 # json_response=True: server returns plain JSON (not SSE streams) for POST requests.
@@ -138,5 +140,7 @@ app = Starlette(
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "8080"))
     host = os.environ.get("HOST", "0.0.0.0")
-    print(f"Starting financial-tools-mcp on {host}:{port}/mcp  health on {host}:{port}/health")
+    print(
+        f"Starting financial-tools-mcp on {host}:{port}/mcp  health on {host}:{port}/health"
+    )
     uvicorn.run(app, host=host, port=port)

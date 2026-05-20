@@ -39,13 +39,15 @@ SKILLS_ROOT = os.path.join(
 
 
 def separator(title):
-    print(f"\n{'='*60}\n  {title}\n{'='*60}")
+    print(f"\n{'=' * 60}\n  {title}\n{'=' * 60}")
 
 
 def wait_for_record(registry_client, registry_id, record_id, target="DRAFT"):
     print(f"  Waiting for record to reach {target}...")
     while True:
-        r      = registry_client.get_registry_record(registryId=registry_id, recordId=record_id)
+        r = registry_client.get_registry_record(
+            registryId=registry_id, recordId=record_id
+        )
         status = r["status"]
         print(f"    status: {status}")
         if status == target:
@@ -60,10 +62,10 @@ def upload_skill_artifacts(s3_client, bucket: str, skill_name: str, skills_root:
     for dirpath, _, filenames in os.walk(skills_root):
         for fname in filenames:
             if fname.upper() == "SKILL.MD":
-                continue   # SKILL.md is stored in registry, not S3
+                continue  # SKILL.md is stored in registry, not S3
             local_path = os.path.join(dirpath, fname)
-            rel_path   = os.path.relpath(local_path, skills_root)
-            s3_key     = f"skills/{skill_name}/{rel_path}"
+            rel_path = os.path.relpath(local_path, skills_root)
+            s3_key = f"skills/{skill_name}/{rel_path}"
             s3_client.upload_file(local_path, bucket, s3_key)
             print(f"  Uploaded: {local_path} → s3://{bucket}/{s3_key}")
 
@@ -82,7 +84,7 @@ def create_registry(registry_client) -> tuple[str, str]:
 
     print("  Waiting for READY...")
     while True:
-        r      = registry_client.get_registry(registryId=rid)
+        r = registry_client.get_registry(registryId=rid)
         status = r["status"]
         print(f"    status: {status}")
         if status == "READY":
@@ -93,8 +95,9 @@ def create_registry(registry_client) -> tuple[str, str]:
     return arn, rid
 
 
-def publish_mcp_record(registry_client, registry_id: str, apigw_url: str,
-                       region: str, account_id: str) -> str:
+def publish_mcp_record(
+    registry_client, registry_id: str, apigw_url: str, region: str, account_id: str
+) -> str:
     """Publish MCP record using synchronizationType=URL with IAM credential provider.
 
     The registry crawls the API Gateway HTTPS endpoint using the agent ECS task role
@@ -131,7 +134,7 @@ def publish_mcp_record(registry_client, registry_id: str, apigw_url: str,
                             "iamCredentialProvider": {
                                 "roleArn": task_role_arn,
                                 "service": "execute-api",
-                                "region":  region,
+                                "region": region,
                             }
                         },
                     }
@@ -164,7 +167,7 @@ def publish_skill_record(registry_client, registry_id: str, skills_root: str) ->
         descriptorType="AGENT_SKILLS",
         descriptors={
             "agentSkills": {
-                "skillMd":         {"inlineContent": skill_md},
+                "skillMd": {"inlineContent": skill_md},
                 "skillDefinition": {"inlineContent": json.dumps({"packages": []})},
             }
         },
@@ -201,22 +204,33 @@ def store_ssm(ssm_client, name: str, value: str):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Setup Agent Registry and S3 artifacts")
-    parser.add_argument("--region",       default=os.environ.get("AWS_REGION", "us-east-1"))
-    parser.add_argument("--bucket",       required=True, help="S3 bucket for skill artifacts")
-    parser.add_argument("--apigw-url",    required=True,
-                        help="API Gateway HTTPS URL for MCP server, e.g. https://xyz.execute-api.us-east-1.amazonaws.com/mcp")
-    parser.add_argument("--skip-s3",      action="store_true", help="Skip S3 artifact upload (already done)")
-    parser.add_argument("--registry-arn", default="", help="Existing registry ARN (skip registry creation)")
+    parser = argparse.ArgumentParser(
+        description="Setup Agent Registry and S3 artifacts"
+    )
+    parser.add_argument("--region", default=os.environ.get("AWS_REGION", "us-east-1"))
+    parser.add_argument("--bucket", required=True, help="S3 bucket for skill artifacts")
+    parser.add_argument(
+        "--apigw-url",
+        required=True,
+        help="API Gateway HTTPS URL for MCP server, e.g. https://xyz.execute-api.us-east-1.amazonaws.com/mcp",
+    )
+    parser.add_argument(
+        "--skip-s3", action="store_true", help="Skip S3 artifact upload (already done)"
+    )
+    parser.add_argument(
+        "--registry-arn",
+        default="",
+        help="Existing registry ARN (skip registry creation)",
+    )
     args = parser.parse_args()
 
     if not args.apigw_url.startswith("https://"):
         raise SystemExit("--apigw-url must start with https://")
 
-    session         = Session(region_name=args.region)
+    session = Session(region_name=args.region)
     registry_client = session.client("bedrock-agentcore-control")
-    s3_client       = session.client("s3")
-    ssm_client      = session.client("ssm")
+    s3_client = session.client("s3")
+    ssm_client = session.client("ssm")
 
     # 1. Upload skill artifacts to S3
     if args.skip_s3:
@@ -228,7 +242,7 @@ def main():
     if args.registry_arn:
         separator("Reusing existing Registry")
         registry_arn = args.registry_arn
-        registry_id  = registry_arn.split("/")[-1]
+        registry_id = registry_arn.split("/")[-1]
         print(f"  Registry ARN : {registry_arn}")
         print(f"  Registry ID  : {registry_id}")
     else:
@@ -250,7 +264,7 @@ def main():
     # 5. Store minimal config in SSM — only REGISTRY_ARN and SKILLS_BUCKET.
     #    MCP server URL is stored in the Registry MCP record, not SSM.
     separator("Storing config in SSM Parameter Store")
-    store_ssm(ssm_client, "/financial-agent/registry-arn",  registry_arn)
+    store_ssm(ssm_client, "/financial-agent/registry-arn", registry_arn)
     store_ssm(ssm_client, "/financial-agent/skills-bucket", args.bucket)
 
     separator("Setup complete")
